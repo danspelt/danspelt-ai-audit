@@ -41,7 +41,7 @@ export default function AuditPage() {
           Enter a business website and get a clear report showing what should be fixed first.
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-5 rounded-2xl border border-slate-800 bg-slate-900 p-6">
+        <form onSubmit={handleSubmit} className="mt-8 space-y-5 rounded-2xl border border-slate-800 bg-slate-900 p-6" suppressHydrationWarning>
           <div>
             <label className="block text-sm font-medium">Website URL</label>
             <input
@@ -50,6 +50,7 @@ export default function AuditPage() {
               placeholder="https://example.com"
               className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white"
               required
+              suppressHydrationWarning
             />
           </div>
 
@@ -62,6 +63,7 @@ export default function AuditPage() {
               type="email"
               className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white"
               required
+              suppressHydrationWarning
             />
           </div>
 
@@ -69,6 +71,7 @@ export default function AuditPage() {
             type="submit"
             disabled={loading}
             className="rounded-xl bg-blue-500 px-6 py-3 font-semibold text-white hover:bg-blue-400 disabled:opacity-60"
+            suppressHydrationWarning
           >
             {loading ? "Running audit..." : "Generate Audit"}
           </button>
