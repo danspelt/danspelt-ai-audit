@@ -1,3 +1,5 @@
+import { auditsRemaining, canRunAudit, recordAudit } from "@/lib/audits";
+import { FREE_AUDIT_LIMIT, PRO_PRICE_LABEL } from "@/lib/constants";
 import OpenAI from "openai";
 
 export async function POST(request: Request) {
@@ -15,6 +17,19 @@ export async function POST(request: Request) {
       return Response.json(
         { error: "OPENAI_API_KEY is missing." },
         { status: 500 }
+      );
+    }
+
+    const access = await canRunAudit(email);
+
+    if (!access.allowed) {
+      return Response.json(
+        {
+          error: `You've used all ${FREE_AUDIT_LIMIT} free audits. Subscribe for ${PRO_PRICE_LABEL} to keep auditing.`,
+          needsSubscription: true,
+          remaining: 0,
+        },
+        { status: 402 }
       );
     }
 
@@ -67,13 +82,40 @@ Website Audit for ${websiteUrl}
 
     const audit = completion.choices[0]?.message?.content || "No audit generated.";
 
-    return Response.json({ audit });
+    const user = await recordAudit(email);
+    const remaining = auditsRemaining(user.auditCount, user.subscribed);
+
+    return Response.json({
+      audit,
+      remaining,
+      subscribed: user.subscribed,
+    });
   } catch (error) {
     console.error(error);
 
+    const apiError = error as {
+      status?: number;
+      code?: string;
+      message?: string;
+      error?: { message?: string; code?: string };
+    };
+
+    const code = apiError.code ?? apiError.error?.code;
+    const message = apiError.message ?? apiError.error?.message;
+
+    if (code === "insufficient_quota") {
+      return Response.json(
+        {
+          error:
+            "OpenAI API has no usable credits. Add prepaid credits at platform.openai.com → Settings → Billing → Overview → Add to credit balance, then create a new API key and update OPENAI_API_KEY.",
+        },
+        { status: 402 }
+      );
+    }
+
     return Response.json(
-      { error: "Failed to generate audit." },
-      { status: 500 }
+      { error: message || "Failed to generate audit." },
+      { status: apiError.status || 500 }
     );
   }
 }
