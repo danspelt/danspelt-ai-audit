@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "AI Website Audit - Get More Leads",
   description: "Get a clear AI-powered website audit with quick fixes for your homepage, mobile layout, calls-to-action, SEO, and customer trust.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
