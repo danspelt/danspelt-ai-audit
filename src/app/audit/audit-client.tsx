@@ -283,6 +283,28 @@ export default function AuditClient() {
                 <div className="report-content mt-6 whitespace-pre-wrap text-sm leading-relaxed text-slate-300">
                   {result}
                 </div>
+
+                {/* Follow-up CTAs */}
+                <div className="mt-8 border-t border-white/10 pt-6">
+                  <p className="mb-4 text-center text-sm font-medium text-slate-400">
+                    Want more help with your website?
+                  </p>
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <button
+                      onClick={() => alert("One-time follow-up request - coming soon!")}
+                      className="flex-1 rounded-xl border border-slate-600 bg-slate-800/50 px-4 py-3 text-sm font-medium text-white transition-colors hover:border-emerald-500/50 hover:bg-slate-800"
+                    >
+                      Request Follow-Up — $5
+                    </button>
+                    <button
+                      onClick={handleSubscribe}
+                      disabled={checkoutLoading}
+                      className="glimmer-btn flex-1 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all hover:bg-emerald-400 disabled:opacity-60"
+                    >
+                      {checkoutLoading ? "Redirecting…" : "Get Membership — $19/month"}
+                    </button>
+                  </div>
+                </div>
               </>
             )}
           </div>

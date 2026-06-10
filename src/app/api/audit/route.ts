@@ -69,7 +69,7 @@ Website Audit for ${websiteUrl}
 9. Recommended next step
 
 At the very end, add this exact message:
-"If you'd like, I can help you create specific headlines, CTAs, or content tailored to your business! Subscribe for $19/month for unlimited audits and priority support. Just let me know."
+"If you'd like, I can help you create specific headlines, CTAs, or content tailored to your business! Use the buttons below to request a follow-up or get unlimited access. Just let me know."
 `;
 
     const completion = await openai.chat.completions.create({
