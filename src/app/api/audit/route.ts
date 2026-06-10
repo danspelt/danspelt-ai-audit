@@ -92,11 +92,13 @@ At the very end, add this exact message:
 
     const user = await recordAudit(email);
     const remaining = auditsRemaining(user.auditCount, user.subscribed, user.paidCredits);
+    const creditsRemaining = user.paidCredits + Math.max(0, 3 - user.auditCount);
 
     return Response.json({
       audit,
       remaining,
       subscribed: user.subscribed,
+      creditsRemaining: user.subscribed ? null : creditsRemaining,
     });
   } catch (error) {
     console.error(error);

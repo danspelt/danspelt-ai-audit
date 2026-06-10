@@ -371,7 +371,7 @@ export default function AuditClient() {
                       <p className="text-xs text-slate-500">{websiteUrl}</p>
                       {remaining !== null && (
                         <p className="mt-1 text-xs text-emerald-400">
-                          {remaining} free audit{remaining === 1 ? "" : "s"} remaining
+                          {remaining} request{remaining === 1 ? "" : "s"} remaining
                         </p>
                       )}
                       {remaining === null && (
@@ -408,7 +408,7 @@ export default function AuditClient() {
                         </span>
                       ) : remaining !== null && remaining > 0 ? (
                         <span className="text-sm font-medium text-amber-400">
-                          {remaining} free request{remaining === 1 ? "" : "s"} remaining
+                          {remaining} request{remaining === 1 ? "" : "s"} remaining
                         </span>
                       ) : null}
                     </div>
@@ -492,7 +492,7 @@ export default function AuditClient() {
 
         {hasSuccess && remaining === 0 && (
           <div className="mt-8 animate-fade-up rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6 text-center md:p-8">
-            <p className="text-sm font-semibold uppercase tracking-widest text-emerald-400">That was your last free audit</p>
+            <p className="text-sm font-semibold uppercase tracking-widest text-emerald-400">That was your last audit</p>
             <h2 className="mt-2 text-xl font-bold">Keep auditing for $19/month</h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">
               Subscribe to run unlimited audits on any site, anytime.
@@ -509,7 +509,7 @@ export default function AuditClient() {
 
         {hasSuccess && remaining !== null && remaining > 0 && (
           <div className="mt-8 text-center text-sm text-slate-500">
-            You have {remaining} free audit{remaining === 1 ? "" : "s"} left.{" "}
+            You have {remaining} request{remaining === 1 ? "" : "s"} left.{" "}
             <Link href="/pricing" className="text-emerald-400 hover:text-emerald-300">
               See pricing →
             </Link>
