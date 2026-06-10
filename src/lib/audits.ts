@@ -1,4 +1,4 @@
-import { FREE_AUDIT_LIMIT } from "@/lib/constants";
+import { CREDIT_PACK_SIZE, FREE_AUDIT_LIMIT } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
 export function normalizeEmail(email: string) {
@@ -15,16 +15,27 @@ export async function getOrCreateUser(email: string) {
   });
 }
 
-export function auditsRemaining(auditCount: number, subscribed: boolean) {
+export function auditsRemaining(
+  auditCount: number,
+  subscribed: boolean,
+  paidCredits: number = 0
+) {
   if (subscribed) return null;
-  return Math.max(0, FREE_AUDIT_LIMIT - auditCount);
+  return Math.max(0, FREE_AUDIT_LIMIT + paidCredits - auditCount);
 }
 
 export async function canRunAudit(email: string) {
   const user = await getOrCreateUser(email);
-  const remaining = auditsRemaining(user.auditCount, user.subscribed);
+  const remaining = auditsRemaining(
+    user.auditCount,
+    user.subscribed,
+    user.paidCredits
+  );
 
-  if (!user.subscribed && user.auditCount >= FREE_AUDIT_LIMIT) {
+  if (
+    !user.subscribed &&
+    user.auditCount >= FREE_AUDIT_LIMIT + user.paidCredits
+  ) {
     return {
       allowed: false as const,
       remaining: 0,
@@ -45,6 +56,16 @@ export async function recordAudit(email: string) {
   return prisma.user.update({
     where: { email: normalized },
     data: { auditCount: { increment: 1 } },
+  });
+}
+
+export async function addCredits(email: string, amount: number = CREDIT_PACK_SIZE) {
+  const normalized = normalizeEmail(email);
+
+  return prisma.user.upsert({
+    where: { email: normalized },
+    update: { paidCredits: { increment: amount } },
+    create: { email: normalized, paidCredits: amount },
   });
 }
 

@@ -1,5 +1,10 @@
 import { auditsRemaining, canRunAudit, recordAudit } from "@/lib/audits";
-import { FREE_AUDIT_LIMIT, PRO_PRICE_LABEL } from "@/lib/constants";
+import {
+  CREDIT_PACK_PRICE_LABEL,
+  CREDIT_PACK_SIZE,
+  FREE_AUDIT_LIMIT,
+  PRO_PRICE_LABEL,
+} from "@/lib/constants";
 import OpenAI from "openai";
 
 export async function POST(request: Request) {
@@ -25,7 +30,7 @@ export async function POST(request: Request) {
     if (!access.allowed) {
       return Response.json(
         {
-          error: `You've used all ${FREE_AUDIT_LIMIT} free audits. Subscribe for ${PRO_PRICE_LABEL} to keep auditing.`,
+          error: `You've used all ${FREE_AUDIT_LIMIT} free audits. Get ${CREDIT_PACK_SIZE} more for ${CREDIT_PACK_PRICE_LABEL}, or go unlimited for ${PRO_PRICE_LABEL}.`,
           needsSubscription: true,
           remaining: 0,
         },

@@ -16,6 +16,7 @@ const LOADING_STEPS = [
 export default function AuditClient() {
   const searchParams = useSearchParams();
   const justSubscribed = searchParams.get("subscribed") === "1";
+  const creditsPurchased = searchParams.get("credits") === "1";
 
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [email, setEmail] = useState("");
@@ -100,6 +101,38 @@ export default function AuditClient() {
     }
   }
 
+  async function handleBuyCredits() {
+    if (!email) {
+      setIsError(true);
+      setResult("Enter your email above, then buy credits.");
+      return;
+    }
+
+    setCheckoutLoading(true);
+
+    try {
+      const res = await fetch("/api/checkout/credits", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.url) {
+        setIsError(true);
+        setResult(data.error || "Could not start checkout.");
+        return;
+      }
+
+      window.location.href = data.url;
+    } catch {
+      setIsError(true);
+      setResult("Could not start checkout. Please try again.");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  }
+
   async function copyReport() {
     await navigator.clipboard.writeText(result);
     setCopied(true);
@@ -114,6 +147,12 @@ export default function AuditClient() {
         {justSubscribed && (
           <div className="mb-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-center text-sm text-emerald-300">
             You&apos;re subscribed! Unlimited audits are now active.
+          </div>
+        )}
+
+        {creditsPurchased && (
+          <div className="mb-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-center text-sm text-emerald-300">
+            Payment received! 3 more audit requests have been added to your account.
           </div>
         )}
 
@@ -244,13 +283,22 @@ export default function AuditClient() {
                   </div>
                 </div>
                 {needsSubscription && (
-                  <button
-                    onClick={handleSubscribe}
-                    disabled={checkoutLoading}
-                    className="glimmer-btn mt-6 w-full rounded-xl bg-emerald-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-400 disabled:opacity-60"
-                  >
-                    {checkoutLoading ? "Redirecting…" : "Subscribe for $19/month"}
-                  </button>
+                  <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                    <button
+                      onClick={handleBuyCredits}
+                      disabled={checkoutLoading}
+                      className="flex-1 rounded-xl border border-slate-600 bg-slate-800/50 px-4 py-3.5 text-sm font-medium text-white transition-colors hover:border-emerald-500/50 hover:bg-slate-800 disabled:opacity-60"
+                    >
+                      {checkoutLoading ? "Redirecting…" : "Get 3 More Requests — $5"}
+                    </button>
+                    <button
+                      onClick={handleSubscribe}
+                      disabled={checkoutLoading}
+                      className="glimmer-btn flex-1 rounded-xl bg-emerald-500 px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-400 disabled:opacity-60"
+                    >
+                      {checkoutLoading ? "Redirecting…" : "Unlimited — $19/month"}
+                    </button>
+                  </div>
                 )}
               </div>
             ) : (
@@ -301,10 +349,11 @@ export default function AuditClient() {
                       </p>
                       <div className="flex flex-col gap-3 sm:flex-row">
                         <button
-                          onClick={() => alert("One-time follow-up request - coming soon!")}
-                          className="flex-1 rounded-xl border border-slate-600 bg-slate-800/50 px-4 py-3 text-sm font-medium text-white transition-colors hover:border-emerald-500/50 hover:bg-slate-800"
+                          onClick={handleBuyCredits}
+                          disabled={checkoutLoading}
+                          className="flex-1 rounded-xl border border-slate-600 bg-slate-800/50 px-4 py-3 text-sm font-medium text-white transition-colors hover:border-emerald-500/50 hover:bg-slate-800 disabled:opacity-60"
                         >
-                          Request Follow-Up — $5
+                          {checkoutLoading ? "Redirecting…" : "Get 3 More Requests — $5"}
                         </button>
                         <button
                           onClick={handleSubscribe}
