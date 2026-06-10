@@ -23,6 +23,7 @@ export default function AuditClient() {
   const [isError, setIsError] = useState(false);
   const [needsSubscription, setNeedsSubscription] = useState(false);
   const [remaining, setRemaining] = useState<number | null>(null);
+  const [subscribed, setSubscribed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
@@ -56,6 +57,7 @@ export default function AuditClient() {
       } else {
         setResult(data.audit);
         setRemaining(data.remaining);
+        setSubscribed(data.subscribed);
       }
     } catch {
       setIsError(true);
@@ -286,24 +288,34 @@ export default function AuditClient() {
 
                 {/* Follow-up CTAs */}
                 <div className="mt-8 border-t border-white/10 pt-6">
-                  <p className="mb-4 text-center text-sm font-medium text-slate-400">
-                    Want more help with your website?
-                  </p>
-                  <div className="flex flex-col gap-3 sm:flex-row">
-                    <button
-                      onClick={() => alert("One-time follow-up request - coming soon!")}
-                      className="flex-1 rounded-xl border border-slate-600 bg-slate-800/50 px-4 py-3 text-sm font-medium text-white transition-colors hover:border-emerald-500/50 hover:bg-slate-800"
-                    >
-                      Request Follow-Up — $5
-                    </button>
-                    <button
-                      onClick={handleSubscribe}
-                      disabled={checkoutLoading}
-                      className="glimmer-btn flex-1 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all hover:bg-emerald-400 disabled:opacity-60"
-                    >
-                      {checkoutLoading ? "Redirecting…" : "Get Membership — $19/month"}
-                    </button>
-                  </div>
+                  {subscribed ? (
+                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-center">
+                      <p className="text-sm font-medium text-emerald-300">
+                        You have unlimited access — request as many follow-ups as you need!
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="mb-4 text-center text-sm font-medium text-slate-400">
+                        Want more help with your website?
+                      </p>
+                      <div className="flex flex-col gap-3 sm:flex-row">
+                        <button
+                          onClick={() => alert("One-time follow-up request - coming soon!")}
+                          className="flex-1 rounded-xl border border-slate-600 bg-slate-800/50 px-4 py-3 text-sm font-medium text-white transition-colors hover:border-emerald-500/50 hover:bg-slate-800"
+                        >
+                          Request Follow-Up — $5
+                        </button>
+                        <button
+                          onClick={handleSubscribe}
+                          disabled={checkoutLoading}
+                          className="glimmer-btn flex-1 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all hover:bg-emerald-400 disabled:opacity-60"
+                        >
+                          {checkoutLoading ? "Redirecting…" : "Get Membership — $19/month"}
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </>
             )}
