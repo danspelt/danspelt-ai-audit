@@ -29,6 +29,10 @@ export default function AuditClient() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [followUpMessages, setFollowUpMessages] = useState<{role: 'user' | 'assistant', content: string}[]>([]);
+  const [followUpInput, setFollowUpInput] = useState("");
+  const [followUpLoading, setFollowUpLoading] = useState(false);
+  const [creditsRemaining, setCreditsRemaining] = useState<number | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -59,6 +63,7 @@ export default function AuditClient() {
         setResult(data.audit);
         setRemaining(data.remaining);
         setSubscribed(data.subscribed);
+        setCreditsRemaining(data.creditsRemaining ?? data.remaining);
       }
     } catch {
       setIsError(true);
@@ -130,6 +135,57 @@ export default function AuditClient() {
       setResult("Could not start checkout. Please try again.");
     } finally {
       setCheckoutLoading(false);
+    }
+  }
+
+  async function handleFollowUp(e: React.FormEvent) {
+    e.preventDefault();
+    if (!followUpInput.trim() || followUpLoading) return;
+
+    const userMessage = followUpInput.trim();
+    setFollowUpInput("");
+    setFollowUpLoading(true);
+
+    // Add user message to chat
+    setFollowUpMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+
+    try {
+      const response = await fetch("/api/followup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          websiteUrl,
+          email,
+          message: userMessage,
+          previousAudit: result,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.needsPayment) {
+          setFollowUpMessages(prev => [...prev, {
+            role: 'assistant',
+            content: "You've used all your available requests. Please purchase more credits or subscribe for unlimited access."
+          }]);
+        } else {
+          setFollowUpMessages(prev => [...prev, {
+            role: 'assistant',
+            content: "Sorry, I couldn't process your request. Please try again."
+          }]);
+        }
+      } else {
+        setFollowUpMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
+        setCreditsRemaining(data.creditsRemaining);
+      }
+    } catch {
+      setFollowUpMessages(prev => [...prev, {
+        role: 'assistant',
+        content: "Network error. Please try again."
+      }]);
+    } finally {
+      setFollowUpLoading(false);
     }
   }
 
@@ -334,20 +390,83 @@ export default function AuditClient() {
                   {result}
                 </div>
 
-                {/* Follow-up CTAs */}
-                <div className="mt-8 border-t border-white/10 pt-6">
-                  {subscribed ? (
-                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-center">
-                      <p className="text-sm font-medium text-emerald-300">
-                        You have unlimited access — request as many follow-ups as you need!
-                      </p>
+                {/* Follow-up Chat Section */}
+                {(subscribed || (creditsRemaining !== null && creditsRemaining > 0) || (remaining !== null && remaining > 0)) && (
+                  <div className="mt-8 border-t border-white/10 pt-6">
+                    {/* Credit/Membership Status */}
+                    <div className="mb-4 text-center">
+                      {subscribed ? (
+                        <span className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-400">
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Unlimited access — chat as much as you need
+                        </span>
+                      ) : creditsRemaining !== null && creditsRemaining > 0 ? (
+                        <span className="text-sm font-medium text-amber-400">
+                          {creditsRemaining} request{creditsRemaining === 1 ? "" : "s"} remaining
+                        </span>
+                      ) : remaining !== null && remaining > 0 ? (
+                        <span className="text-sm font-medium text-amber-400">
+                          {remaining} free request{remaining === 1 ? "" : "s"} remaining
+                        </span>
+                      ) : null}
                     </div>
-                  ) : (
-                    <>
-                      <p className="mb-4 text-center text-sm font-medium text-slate-400">
-                        Want more help with your website?
-                      </p>
-                      <div className="flex flex-col gap-3 sm:flex-row">
+
+                    {/* Chat Messages */}
+                    {followUpMessages.length > 0 && (
+                      <div className="mb-4 space-y-3">
+                        {followUpMessages.map((msg, idx) => (
+                          <div
+                            key={idx}
+                            className={`rounded-xl px-4 py-3 text-sm ${
+                              msg.role === 'user'
+                                ? 'bg-slate-800 text-slate-200 ml-8'
+                                : 'bg-emerald-500/10 border border-emerald-500/20 text-slate-300 mr-8'
+                            }`}
+                          >
+                            {msg.content}
+                          </div>
+                        ))}
+                        {followUpLoading && (
+                          <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 text-sm text-slate-400 mr-8">
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-400 border-t-transparent" />
+                            Thinking...
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Chat Input */}
+                    <form onSubmit={handleFollowUp} className="flex gap-2">
+                      <input
+                        type="text"
+                        value={followUpInput}
+                        onChange={(e) => setFollowUpInput(e.target.value)}
+                        placeholder="Ask a follow-up question about your audit..."
+                        className="flex-1 rounded-xl border border-slate-700 bg-slate-950/50 px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:border-emerald-500/50 focus:outline-none"
+                        disabled={followUpLoading}
+                      />
+                      <button
+                        type="submit"
+                        disabled={followUpLoading || !followUpInput.trim()}
+                        className="rounded-xl bg-emerald-500 px-4 py-3 text-sm font-medium text-white hover:bg-emerald-400 disabled:opacity-50"
+                      >
+                        {followUpLoading ? (
+                          <svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                        ) : (
+                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                          </svg>
+                        )}
+                      </button>
+                    </form>
+
+                    {/* No Credits Left - Show Purchase Options */}
+                    {!subscribed && creditsRemaining === 0 && remaining === 0 && (
+                      <div className="mt-4 flex flex-col gap-3 sm:flex-row">
                         <button
                           onClick={handleBuyCredits}
                           disabled={checkoutLoading}
@@ -363,9 +482,9 @@ export default function AuditClient() {
                           {checkoutLoading ? "Redirecting…" : "Get Membership — $19/month"}
                         </button>
                       </div>
-                    </>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
               </>
             )}
           </div>

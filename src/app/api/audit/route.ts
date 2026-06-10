@@ -91,7 +91,7 @@ At the very end, add this exact message:
     const audit = completion.choices[0]?.message?.content || "No audit generated.";
 
     const user = await recordAudit(email);
-    const remaining = auditsRemaining(user.auditCount, user.subscribed);
+    const remaining = auditsRemaining(user.auditCount, user.subscribed, user.paidCredits);
 
     return Response.json({
       audit,
