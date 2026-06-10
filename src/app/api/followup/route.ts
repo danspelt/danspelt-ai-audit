@@ -22,6 +22,8 @@ export async function POST(request: Request) {
 
     // Check if user can do follow-up (has credits or membership)
     const access = await canRunFollowUp(email);
+    const userBefore = await getUser(email);
+    console.log("[FollowUp] Before deduction:", { email, paidCredits: userBefore?.paidCredits, auditCount: userBefore?.auditCount, subscribed: userBefore?.subscribed });
 
     if (!access.allowed) {
       return Response.json(
@@ -35,7 +37,11 @@ export async function POST(request: Request) {
 
     // Deduct a credit if not subscribed (credit pack users)
     if (!access.subscribed) {
-      await deductCredit(email);
+      console.log("[FollowUp] Deducting credit for:", email);
+      const deductResult = await deductCredit(email);
+      console.log("[FollowUp] Deduct result:", { email, paidCredits: deductResult.paidCredits, auditCount: deductResult.auditCount });
+    } else {
+      console.log("[FollowUp] User is subscribed, no credit deduction:", email);
     }
 
     const openai = new OpenAI({
@@ -82,6 +88,7 @@ If the question is outside the scope of website optimization, politely redirect 
     const creditsRemaining = updatedUser
       ? updatedUser.paidCredits + Math.max(0, FREE_AUDIT_LIMIT - updatedUser.auditCount)
       : 0;
+    console.log("[FollowUp] After deduction:", { email, paidCredits: updatedUser?.paidCredits, auditCount: updatedUser?.auditCount, creditsRemaining });
 
     return Response.json({
       response,
