@@ -86,7 +86,7 @@ If the question is outside the scope of website optimization, politely redirect 
     // Get updated user to check remaining
     const updatedUser = await getUser(email);
     const creditsRemaining = updatedUser
-      ? updatedUser.paidCredits + Math.max(0, FREE_AUDIT_LIMIT - updatedUser.auditCount)
+      ? Math.max(0, FREE_AUDIT_LIMIT + updatedUser.paidCredits - updatedUser.auditCount)
       : 0;
     console.log("[FollowUp] After deduction:", { email, paidCredits: updatedUser?.paidCredits, auditCount: updatedUser?.auditCount, creditsRemaining });
 
