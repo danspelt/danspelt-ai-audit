@@ -45,4 +45,10 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
+# Probe with node rather than curl or wget: Node's global fetch needs no extra packages.
+# Targets / because there is no health endpoint yet. Longer start period because the
+# entrypoint runs Prisma migrations before the server listens.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
 CMD ["./docker-entrypoint.sh"]
