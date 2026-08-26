@@ -1,5 +1,9 @@
 import { CREDIT_PACK_SIZE, FREE_AUDIT_LIMIT } from "@/lib/constants";
+import { auditsRemaining } from "@/lib/credit-math";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
+
+export { auditsRemaining } from "@/lib/credit-math";
 
 export function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -13,15 +17,6 @@ export async function getOrCreateUser(email: string) {
     update: {},
     create: { email: normalized },
   });
-}
-
-export function auditsRemaining(
-  auditCount: number,
-  subscribed: boolean,
-  paidCredits: number = 0
-) {
-  if (subscribed) return null;
-  return Math.max(0, FREE_AUDIT_LIMIT + paidCredits - auditCount);
 }
 
 export async function canRunAudit(email: string) {
@@ -87,11 +82,9 @@ export async function getUser(email: string) {
   });
 }
 
-// Check if user can run follow-up (has credits or membership)
 export async function canRunFollowUp(email: string) {
   const user = await getOrCreateUser(email);
 
-  // Subscribed users have unlimited access
   if (user.subscribed) {
     return {
       allowed: true as const,
@@ -99,7 +92,6 @@ export async function canRunFollowUp(email: string) {
     };
   }
 
-  // Check if user has any credits remaining (free + paid)
   const totalAvailable = FREE_AUDIT_LIMIT + user.paidCredits - user.auditCount;
 
   if (totalAvailable > 0) {
@@ -115,14 +107,12 @@ export async function canRunFollowUp(email: string) {
   };
 }
 
-// Deduct one credit (used for follow-up)
 export async function deductCredit(email: string) {
   const normalized = normalizeEmail(email);
   const user = await getUser(normalized);
 
   if (!user) throw new Error("User not found");
 
-  // If user has paid credits, deduct from there first
   if (user.paidCredits > 0) {
     return prisma.user.update({
       where: { email: normalized },
@@ -130,9 +120,57 @@ export async function deductCredit(email: string) {
     });
   }
 
-  // Otherwise, increment auditCount to consume a free audit
   return prisma.user.update({
     where: { email: normalized },
     data: { auditCount: { increment: 1 } },
   });
+}
+
+type FulfillInput = {
+  id: string;
+  mode: string | null;
+  customer_email: string | null;
+  metadata?: { email?: string } | null;
+  payment_status: string;
+};
+
+/**
+ * Grant credits/subscription for a paid Checkout session at most once,
+ * whether called from the webhook or the success redirect.
+ */
+export async function fulfillStripeCheckout(session: FulfillInput) {
+  const email = session.customer_email || session.metadata?.email;
+
+  if (!email || session.payment_status !== "paid") {
+    return { fulfilled: false as const, reason: "unpaid_or_no_email" as const };
+  }
+
+  const normalized = normalizeEmail(email);
+  const mode = session.mode ?? "unknown";
+
+  try {
+    await prisma.processedStripeSession.create({
+      data: {
+        id: session.id,
+        email: normalized,
+        mode,
+      },
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return { fulfilled: false as const, reason: "already_processed" as const };
+    }
+    throw error;
+  }
+
+  if (mode === "subscription") {
+    await markSubscribed(email);
+  } else if (mode === "payment") {
+    await addCredits(email, CREDIT_PACK_SIZE);
+  }
+
+  return { fulfilled: true as const, email: normalized, mode };
 }

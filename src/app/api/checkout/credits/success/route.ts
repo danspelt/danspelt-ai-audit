@@ -1,5 +1,4 @@
-import { addCredits } from "@/lib/audits";
-import { CREDIT_PACK_SIZE } from "@/lib/constants";
+import { fulfillStripeCheckout } from "@/lib/audits";
 import Stripe from "stripe";
 
 export async function GET(request: Request) {
@@ -14,11 +13,13 @@ export async function GET(request: Request) {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
-    const email = session.customer_email || session.metadata?.email;
-
-    if (email && session.payment_status === "paid") {
-      await addCredits(email, CREDIT_PACK_SIZE);
-    }
+    await fulfillStripeCheckout({
+      id: session.id,
+      mode: session.mode,
+      customer_email: session.customer_email,
+      metadata: session.metadata,
+      payment_status: session.payment_status,
+    });
 
     return Response.redirect(`${appUrl}/audit?credits=1`);
   } catch (error) {

@@ -1,4 +1,4 @@
-import { markSubscribed } from "@/lib/audits";
+import { fulfillStripeCheckout } from "@/lib/audits";
 import Stripe from "stripe";
 
 export async function GET(request: Request) {
@@ -13,11 +13,13 @@ export async function GET(request: Request) {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
-    const email = session.customer_email || session.metadata?.email;
-
-    if (email && session.payment_status === "paid") {
-      await markSubscribed(email);
-    }
+    await fulfillStripeCheckout({
+      id: session.id,
+      mode: session.mode,
+      customer_email: session.customer_email,
+      metadata: session.metadata,
+      payment_status: session.payment_status,
+    });
 
     return Response.redirect(`${appUrl}/audit?subscribed=1`);
   } catch (error) {
