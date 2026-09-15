@@ -77,27 +77,14 @@ const totalAvailable = FREE_AUDIT_LIMIT + paidCredits - auditCount;
 
 ## 🐛 Known Issues / Debugging In Progress
 
-### Issue: Credit Count Display Wrong
-**Status:** Debug logging added, awaiting verification
+### Issue: Credit Count Display Wrong — FIXED
+**Status:** Fixed in hygiene pass
 
-**Problem:** After user purchased 3 credits and used 1 follow-up, UI shows "5 requests remaining" instead of expected "4" or "2".
+**Root cause:** `/api/audit` and `/api/followup` computed `creditsRemaining` as `paidCredits + max(0, FREE - auditCount)`, which diverged from `auditsRemaining()` once `auditCount > FREE_AUDIT_LIMIT`.
 
-**Debug logging added to:**
-- `src/app/api/followup/route.ts` - Logs before/after credit deduction
+**Fix:** Both routes now use `auditsRemaining()` only. Follow-up deducts credits **after** a successful OpenAI response. Stripe fulfillment is idempotent via `ProcessedStripeSession` (webhook + success redirect share one grant).
 
-**Check logs at:**
-- Coolify Dashboard → Application → Logs
-- Or: `docker logs <container_id>`
-
-**Expected behavior:**
-- User starts: 3 free + 3 paid = 6 total
-- After 1 audit: 2 free + 3 paid = 5 total
-- After 1 follow-up: 2 free + 2 paid = 4 total
-
-**Files to review if issue persists:**
-- `src/lib/audits.ts` - `deductCredit()` function
-- `src/app/api/followup/route.ts` - Credit deduction logic
-- `src/app/audit/audit-client.tsx` - Credits display logic
+**Deploy note:** run `npx prisma db push` (or migrate) so `ProcessedStripeSession` exists in production Postgres before relying on idempotent fulfillment.
 
 ---
 

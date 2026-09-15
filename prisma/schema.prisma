@@ -18,3 +18,11 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
+
+/// Stripe Checkout session IDs already fulfilled (webhook and/or success redirect).
+model ProcessedStripeSession {
+  id        String   @id
+  email     String
+  mode      String
+  createdAt DateTime @default(now())
+}

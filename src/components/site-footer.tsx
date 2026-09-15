@@ -33,7 +33,23 @@ export function SiteFooter() {
           </div>
         </div>
         <div className="mt-12 border-t border-white/5 pt-8 text-center text-xs text-slate-500">
-          © {new Date().getFullYear()} AuditSpark. All rights reserved.
+          © {new Date().getFullYear()} AuditSpark. Built by{" "}
+          <a
+            href="https://danspelt.com"
+            className="text-slate-400 transition-colors hover:text-emerald-400"
+            rel="noopener noreferrer"
+          >
+            Dan Spelt
+          </a>
+          . Part of the{" "}
+          <a
+            href="https://danspelt.com/projects"
+            className="text-slate-400 transition-colors hover:text-emerald-400"
+            rel="noopener noreferrer"
+          >
+            danspelt.com
+          </a>{" "}
+          product family.
         </div>
       </div>
     </footer>

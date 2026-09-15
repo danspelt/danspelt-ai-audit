@@ -1,5 +1,4 @@
-import { addCredits, markSubscribed } from "@/lib/audits";
-import { CREDIT_PACK_SIZE } from "@/lib/constants";
+import { fulfillStripeCheckout } from "@/lib/audits";
 import Stripe from "stripe";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -18,34 +17,24 @@ export async function POST(request: Request) {
 
   try {
     event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
-  } catch (err: any) {
-    console.error("Webhook signature verification failed:", err.message);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Invalid signature";
+    console.error("Webhook signature verification failed:", message);
     return Response.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  // Handle the checkout.session.completed event
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
 
-    const email = session.customer_email || session.metadata?.email;
-    const mode = session.mode;
-    const paymentStatus = session.payment_status;
-
-    if (!email || paymentStatus !== "paid") {
-      console.log("Webhook: No email or payment not completed", { email, paymentStatus });
-      return Response.json({ received: true });
-    }
-
     try {
-      if (mode === "subscription") {
-        // Unlimited membership
-        await markSubscribed(email);
-        console.log("Webhook: Marked user as subscribed", email);
-      } else if (mode === "payment") {
-        // Credit pack
-        await addCredits(email, CREDIT_PACK_SIZE);
-        console.log("Webhook: Added credits to user", email);
-      }
+      const result = await fulfillStripeCheckout({
+        id: session.id,
+        mode: session.mode,
+        customer_email: session.customer_email,
+        metadata: session.metadata,
+        payment_status: session.payment_status,
+      });
+      console.log("Webhook fulfill result:", result);
     } catch (err) {
       console.error("Webhook processing error:", err);
       return Response.json({ error: "Processing failed" }, { status: 500 });
